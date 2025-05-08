@@ -1,3 +1,4 @@
 (test
  (name test_yarrow)
- (libraries yarrow alcotest))
+ (libraries yarrow alcotest)
+ (flags (:standard -cclib -lblas)))

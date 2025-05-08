@@ -1,4 +1,10 @@
 (include_subdirs qualified)
 (library
  (public_name yarrow)
- (name yarrow))
+ (name yarrow)
+ (libraries ctypes ctypes.foreign unix bigarray)
+ (flags (:standard -cclib -lblas))
+ (inline_tests 
+  (executable 
+   (flags (:standard -cclib -lblas))))
+ (preprocess (pps ppx_inline_alcotest)))
