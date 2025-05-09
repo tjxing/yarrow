@@ -12,6 +12,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install native dependencies
+        run: |
+          apt-get update -y
+          apt-get install -y libopenblas-dev
+
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v3
         with:
