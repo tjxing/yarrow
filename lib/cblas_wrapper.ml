@@ -360,8 +360,6 @@ let zherk = foreign "cblas_zherk" (int @-> int @-> int @-> int @-> int @-> doubl
 
 let zher2k = foreign "cblas_zher2k" (int @-> int @-> int @-> int @-> int @-> ptr void @-> ptr void @-> int @-> ptr void @-> int @-> double @-> ptr void @-> int @-> returning void)
 
-(* let xerbla = foreign "cblas_xerbla" (int @-> ptr char @-> ptr char @-> ... @-> returning void) *)
-
 (* Unit tests *)
 (* The tests are here because this module is private and cannot be tested outside *)
 (* Following tests only check the functions are linked correctly or not. They don't make sure the correctness of the linked library. *)
@@ -1239,3 +1237,715 @@ let%test "dspr2" =
   Alcotest.(check (float 0.0001)) "y[0]" 0.2 (Array1.unsafe_get a 0);
   Alcotest.(check (float 0.0001)) "y[1]" 0.4 (Array1.unsafe_get a 1);
   Alcotest.(check (float 0.0001)) "y[2]" 0.7 (Array1.unsafe_get a 2)
+
+let%test "chemv" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 1.0; 2.0; 0.0; 0.0; 2.0; 0.0|] in
+  let x = Array1.of_array float32 c_layout [|0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float32 c_layout [|1.0; 0.0|] in
+  let _ = chemv (int_of_order RowMajor) (int_of_uplo Upper) 2
+    (to_voidp (bigarray_start array1 alpha)) (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 y)) 1 in
+  Alcotest.(check (float 0.0001)) "y[0]" 0.6 (Array1.unsafe_get y 0);
+  Alcotest.(check (float 0.0001)) "y[1]" 0.1 (Array1.unsafe_get y 1);
+  Alcotest.(check (float 0.0001)) "y[2]" 0.65 (Array1.unsafe_get y 2);
+  Alcotest.(check (float 0.0001)) "y[3]" (-0.1) (Array1.unsafe_get y 3)
+
+let%test "chbmv" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 1.0; 1.0; 2.0; 0.0; 1.0; 2.0; 3.0; 0.0|] in
+  let x = Array1.of_array float32 c_layout [|0.1; 0.0; 0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float32 c_layout [|1.0; 0.0|] in
+  let _ = chbmv (int_of_order RowMajor) (int_of_uplo Upper) 3 1
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 beta)) 
+    (to_voidp (bigarray_start array1 y)) 1 in
+  Alcotest.(check (float 0.0001)) "y[0]" 0.6 (Array1.unsafe_get y 0);
+  Alcotest.(check (float 0.0001)) "y[1]" 0.05 (Array1.unsafe_get y 1);
+  Alcotest.(check (float 0.0001)) "y[2]" 0.7 (Array1.unsafe_get y 2);
+  Alcotest.(check (float 0.0001)) "y[3]" 0.05 (Array1.unsafe_get y 3);
+  Alcotest.(check (float 0.0001)) "y[4]" 0.7 (Array1.unsafe_get y 4);
+  Alcotest.(check (float 0.0001)) "y[5]" (-0.1) (Array1.unsafe_get y 5)
+
+let%test "chpmv" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 1.0; 2.0; 2.0; 0.0|] in
+  let x = Array1.of_array float32 c_layout [|0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float32 c_layout [|1.0; 0.0|] in
+  let _ = chpmv (int_of_order RowMajor) (int_of_uplo Upper) 2
+    (to_voidp (bigarray_start array1 alpha)) (to_voidp (bigarray_start array1 a))
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 y)) 1 in
+  Alcotest.(check (float 0.0001)) "y[0]" 0.6 (Array1.unsafe_get y 0);
+  Alcotest.(check (float 0.0001)) "y[1]" 0.1 (Array1.unsafe_get y 1);
+  Alcotest.(check (float 0.0001)) "y[2]" 0.65 (Array1.unsafe_get y 2);
+  Alcotest.(check (float 0.0001)) "y[3]" (-0.1) (Array1.unsafe_get y 3)
+
+let%test "cgeru" =
+  let a = Array1.of_array float32 c_layout [|0.25; 0.0; 0.25; 0.0; 0.25; 0.0; 0.25; 0.0|] in
+  let x = Array1.of_array float32 c_layout [|0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float32 c_layout [|5.0; 0.0; 5.0; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = cgeru (int_of_order RowMajor) 2 2
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 y)) 1
+    (to_voidp (bigarray_start array1 a)) 2  in
+  Alcotest.(check (float 0.0001)) "a[0]" 0.5 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 0.5 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 0.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[4]" 0.5 (Array1.unsafe_get a 4);
+  Alcotest.(check (float 0.0001)) "a[5]" 0.0 (Array1.unsafe_get a 5);
+  Alcotest.(check (float 0.0001)) "a[6]" 0.5 (Array1.unsafe_get a 6);
+  Alcotest.(check (float 0.0001)) "a[7]" 0.0 (Array1.unsafe_get a 7)
+
+let%test "cgerc" =
+  let a = Array1.of_array float32 c_layout [|0.25; 0.0; 0.25; 0.0; 0.25; 0.0; 0.25; 0.0|] in
+  let x = Array1.of_array float32 c_layout [|0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float32 c_layout [|5.0; 0.0; 5.0; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = cgerc (int_of_order RowMajor) 2 2
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 y)) 1
+    (to_voidp (bigarray_start array1 a)) 2  in
+  Alcotest.(check (float 0.0001)) "a[0]" 0.5 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 0.5 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 0.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[4]" 0.5 (Array1.unsafe_get a 4);
+  Alcotest.(check (float 0.0001)) "a[5]" 0.0 (Array1.unsafe_get a 5);
+  Alcotest.(check (float 0.0001)) "a[6]" 0.5 (Array1.unsafe_get a 6);
+  Alcotest.(check (float 0.0001)) "a[7]" 0.0 (Array1.unsafe_get a 7)
+
+let%test "cher" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 1.0; 1.0; 0.0; 0.0; 1.0; 0.0|] in
+  let x = Array1.of_array float32 c_layout [|2.0; 0.0; 2.0; 0.0|] in
+  let _ = cher (int_of_order RowMajor) (int_of_uplo Upper) 2 0.5
+    (to_voidp (bigarray_start array1 x)) 1
+    (to_voidp (bigarray_start array1 a)) 2  in
+  Alcotest.(check (float 0.0001)) "a[0]" 3.0 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 3.0 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 1.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[6]" 3.0 (Array1.unsafe_get a 6);
+  Alcotest.(check (float 0.0001)) "a[7]" 0.0 (Array1.unsafe_get a 7)
+
+let%test "chpr" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 1.0; 1.0; 1.0; 0.0|] in
+  let x = Array1.of_array float32 c_layout [|2.0; 0.0; 2.0; 0.0|] in
+  let _ = chpr (int_of_order RowMajor) (int_of_uplo Upper) 2 0.5
+    (to_voidp (bigarray_start array1 x)) 1
+    (to_voidp (bigarray_start array1 a))  in
+  Alcotest.(check (float 0.0001)) "a[0]" 3.0 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 3.0 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 1.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[4]" 3.0 (Array1.unsafe_get a 4);
+  Alcotest.(check (float 0.0001)) "a[5]" 0.0 (Array1.unsafe_get a 5)
+
+let%test "cher2" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 1.0; 1.0; 0.0; 0.0; 1.0; 0.0|] in
+  let x = Array1.of_array float32 c_layout [|2.0; 0.0; 2.0; 0.0|] in
+  let y = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = cher2 (int_of_order RowMajor) (int_of_uplo Upper) 2
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 x)) 1
+    (to_voidp (bigarray_start array1 y)) 1
+    (to_voidp (bigarray_start array1 a)) 2  in
+  Alcotest.(check (float 0.0001)) "a[0]" 2.0 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 2.0 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 1.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[6]" 2.0 (Array1.unsafe_get a 6);
+  Alcotest.(check (float 0.0001)) "a[7]" 0.0 (Array1.unsafe_get a 7)
+
+let%test "chpr2" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 1.0; 1.0; 1.0; 0.0|] in
+  let x = Array1.of_array float32 c_layout [|2.0; 0.0; 2.0; 0.0|] in
+  let y = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = chpr2 (int_of_order RowMajor) (int_of_uplo Upper) 2
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 x)) 1
+    (to_voidp (bigarray_start array1 y)) 1
+    (to_voidp (bigarray_start array1 a))  in
+  Alcotest.(check (float 0.0001)) "a[0]" 2.0 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 2.0 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 1.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[4]" 2.0 (Array1.unsafe_get a 4);
+  Alcotest.(check (float 0.0001)) "a[5]" 0.0 (Array1.unsafe_get a 5)
+
+let%test "zhemv" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 1.0; 2.0; 0.0; 0.0; 2.0; 0.0|] in
+  let x = Array1.of_array float64 c_layout [|0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float64 c_layout [|1.0; 0.0|] in
+  let _ = zhemv (int_of_order RowMajor) (int_of_uplo Upper) 2
+    (to_voidp (bigarray_start array1 alpha)) (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 y)) 1 in
+  Alcotest.(check (float 0.0001)) "y[0]" 0.6 (Array1.unsafe_get y 0);
+  Alcotest.(check (float 0.0001)) "y[1]" 0.1 (Array1.unsafe_get y 1);
+  Alcotest.(check (float 0.0001)) "y[2]" 0.65 (Array1.unsafe_get y 2);
+  Alcotest.(check (float 0.0001)) "y[3]" (-0.1) (Array1.unsafe_get y 3)
+
+let%test "zhbmv" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 1.0; 1.0; 2.0; 0.0; 1.0; 2.0; 3.0; 0.0|] in
+  let x = Array1.of_array float64 c_layout [|0.1; 0.0; 0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float64 c_layout [|1.0; 0.0|] in
+  let _ = zhbmv (int_of_order RowMajor) (int_of_uplo Upper) 3 1
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 beta)) 
+    (to_voidp (bigarray_start array1 y)) 1 in
+  Alcotest.(check (float 0.0001)) "y[0]" 0.6 (Array1.unsafe_get y 0);
+  Alcotest.(check (float 0.0001)) "y[1]" 0.05 (Array1.unsafe_get y 1);
+  Alcotest.(check (float 0.0001)) "y[2]" 0.7 (Array1.unsafe_get y 2);
+  Alcotest.(check (float 0.0001)) "y[3]" 0.05 (Array1.unsafe_get y 3);
+  Alcotest.(check (float 0.0001)) "y[4]" 0.7 (Array1.unsafe_get y 4);
+  Alcotest.(check (float 0.0001)) "y[5]" (-0.1) (Array1.unsafe_get y 5)
+
+let%test "zhpmv" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 1.0; 2.0; 2.0; 0.0|] in
+  let x = Array1.of_array float64 c_layout [|0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float64 c_layout [|1.0; 0.0|] in
+  let _ = zhpmv (int_of_order RowMajor) (int_of_uplo Upper) 2
+    (to_voidp (bigarray_start array1 alpha)) (to_voidp (bigarray_start array1 a))
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 y)) 1 in
+  Alcotest.(check (float 0.0001)) "y[0]" 0.6 (Array1.unsafe_get y 0);
+  Alcotest.(check (float 0.0001)) "y[1]" 0.1 (Array1.unsafe_get y 1);
+  Alcotest.(check (float 0.0001)) "y[2]" 0.65 (Array1.unsafe_get y 2);
+  Alcotest.(check (float 0.0001)) "y[3]" (-0.1) (Array1.unsafe_get y 3)
+
+let%test "zgeru" =
+  let a = Array1.of_array float64 c_layout [|0.25; 0.0; 0.25; 0.0; 0.25; 0.0; 0.25; 0.0|] in
+  let x = Array1.of_array float64 c_layout [|0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float64 c_layout [|5.0; 0.0; 5.0; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zgeru (int_of_order RowMajor) 2 2
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 y)) 1
+    (to_voidp (bigarray_start array1 a)) 2  in
+  Alcotest.(check (float 0.0001)) "a[0]" 0.5 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 0.5 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 0.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[4]" 0.5 (Array1.unsafe_get a 4);
+  Alcotest.(check (float 0.0001)) "a[5]" 0.0 (Array1.unsafe_get a 5);
+  Alcotest.(check (float 0.0001)) "a[6]" 0.5 (Array1.unsafe_get a 6);
+  Alcotest.(check (float 0.0001)) "a[7]" 0.0 (Array1.unsafe_get a 7)
+
+let%test "zgerc" =
+  let a = Array1.of_array float64 c_layout [|0.25; 0.0; 0.25; 0.0; 0.25; 0.0; 0.25; 0.0|] in
+  let x = Array1.of_array float64 c_layout [|0.1; 0.0; 0.1; 0.0|] in
+  let y = Array1.of_array float64 c_layout [|5.0; 0.0; 5.0; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zgerc (int_of_order RowMajor) 2 2
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 x)) 1 
+    (to_voidp (bigarray_start array1 y)) 1
+    (to_voidp (bigarray_start array1 a)) 2  in
+  Alcotest.(check (float 0.0001)) "a[0]" 0.5 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 0.5 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 0.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[4]" 0.5 (Array1.unsafe_get a 4);
+  Alcotest.(check (float 0.0001)) "a[5]" 0.0 (Array1.unsafe_get a 5);
+  Alcotest.(check (float 0.0001)) "a[6]" 0.5 (Array1.unsafe_get a 6);
+  Alcotest.(check (float 0.0001)) "a[7]" 0.0 (Array1.unsafe_get a 7)
+
+let%test "zher" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 1.0; 1.0; 0.0; 0.0; 1.0; 0.0|] in
+  let x = Array1.of_array float64 c_layout [|2.0; 0.0; 2.0; 0.0|] in
+  let _ = zher (int_of_order RowMajor) (int_of_uplo Upper) 2 0.5
+    (to_voidp (bigarray_start array1 x)) 1
+    (to_voidp (bigarray_start array1 a)) 2  in
+  Alcotest.(check (float 0.0001)) "a[0]" 3.0 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 3.0 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 1.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[6]" 3.0 (Array1.unsafe_get a 6);
+  Alcotest.(check (float 0.0001)) "a[7]" 0.0 (Array1.unsafe_get a 7)
+
+let%test "zhpr" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 1.0; 1.0; 1.0; 0.0|] in
+  let x = Array1.of_array float64 c_layout [|2.0; 0.0; 2.0; 0.0|] in
+  let _ = zhpr (int_of_order RowMajor) (int_of_uplo Upper) 2 0.5
+    (to_voidp (bigarray_start array1 x)) 1
+    (to_voidp (bigarray_start array1 a))  in
+  Alcotest.(check (float 0.0001)) "a[0]" 3.0 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 3.0 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 1.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[4]" 3.0 (Array1.unsafe_get a 4);
+  Alcotest.(check (float 0.0001)) "a[5]" 0.0 (Array1.unsafe_get a 5)
+
+let%test "zher2" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 1.0; 1.0; 0.0; 0.0; 1.0; 0.0|] in
+  let x = Array1.of_array float64 c_layout [|2.0; 0.0; 2.0; 0.0|] in
+  let y = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zher2 (int_of_order RowMajor) (int_of_uplo Upper) 2
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 x)) 1
+    (to_voidp (bigarray_start array1 y)) 1
+    (to_voidp (bigarray_start array1 a)) 2  in
+  Alcotest.(check (float 0.0001)) "a[0]" 2.0 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 2.0 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 1.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[6]" 2.0 (Array1.unsafe_get a 6);
+  Alcotest.(check (float 0.0001)) "a[7]" 0.0 (Array1.unsafe_get a 7)
+
+let%test "zhpr2" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 1.0; 1.0; 1.0; 0.0|] in
+  let x = Array1.of_array float64 c_layout [|2.0; 0.0; 2.0; 0.0|] in
+  let y = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zhpr2 (int_of_order RowMajor) (int_of_uplo Upper) 2
+    (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 x)) 1
+    (to_voidp (bigarray_start array1 y)) 1
+    (to_voidp (bigarray_start array1 a))  in
+  Alcotest.(check (float 0.0001)) "a[0]" 2.0 (Array1.unsafe_get a 0);
+  Alcotest.(check (float 0.0001)) "a[1]" 0.0 (Array1.unsafe_get a 1);
+  Alcotest.(check (float 0.0001)) "a[2]" 2.0 (Array1.unsafe_get a 2);
+  Alcotest.(check (float 0.0001)) "a[3]" 1.0 (Array1.unsafe_get a 3);
+  Alcotest.(check (float 0.0001)) "a[4]" 2.0 (Array1.unsafe_get a 4);
+  Alcotest.(check (float 0.0001)) "a[5]" 0.0 (Array1.unsafe_get a 5)
+
+let%test "sgemm" =
+  let a = Array1.of_array float32 c_layout [|1.0; 2.0; 3.0; 4.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.5; 0.5; 0.5|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 4.0; 6.0; 8.0|] in
+  let _ = sgemm (int_of_order RowMajor) (int_of_transpose NoTrans) (int_of_transpose NoTrans)
+    2 2 2 0.5
+    (bigarray_start array1 a) 2 
+    (bigarray_start array1 b) 2 
+    0.5 (bigarray_start array1 c) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 2.75 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[2]" 4.75 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 5.75 (Array1.unsafe_get c 3)
+
+let%test "ssymm" =
+  let a = Array1.of_array float32 c_layout [|1.0; 2.0; 0.0; 4.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.5; 0.5; 0.5|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 4.0; 6.0; 8.0|] in
+  let _ = ssymm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper)
+    2 2 0.5
+    (bigarray_start array1 a) 2 
+    (bigarray_start array1 b) 2 
+    0.5 (bigarray_start array1 c) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 2.75 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[2]" 4.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 5.5 (Array1.unsafe_get c 3)
+
+let%test "ssyrk" =
+  let a = Array1.of_array float32 c_layout [|1.0; 2.0; 3.0; 4.0|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 4.0; 0.0; 8.0|] in
+  let _ = ssyrk (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 0.5
+    (bigarray_start array1 a) 2 
+    0.5 (bigarray_start array1 c) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 3.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 7.5 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[3]" 16.5 (Array1.unsafe_get c 3)
+
+let%test "ssyr2k" =
+  let a = Array1.of_array float32 c_layout [|1.0; 2.0; 3.0; 4.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.5; 0.5; 0.5|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 4.0; 0.0; 8.0|] in
+  let _ = ssyr2k (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 0.5
+    (bigarray_start array1 a) 2
+    (bigarray_start array1 b) 2 
+    0.5 (bigarray_start array1 c) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 2.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 4.5 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[3]" 7.5 (Array1.unsafe_get c 3)
+
+let%test "strmm" =
+  let a = Array1.of_array float32 c_layout [|1.0; 2.0; 0.0; 4.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.5; 0.5; 0.5|] in
+  let _ = strmm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper) (int_of_transpose NoTrans) (int_of_diag NonUnit)
+    2 2 2.0
+    (bigarray_start array1 a) 2 
+    (bigarray_start array1 b) 2 in
+  Alcotest.(check (float 0.0001)) "b[0]" 3.0 (Array1.unsafe_get b 0);
+  Alcotest.(check (float 0.0001)) "b[1]" 3.0 (Array1.unsafe_get b 1);
+  Alcotest.(check (float 0.0001)) "b[2]" 4.0 (Array1.unsafe_get b 2);
+  Alcotest.(check (float 0.0001)) "b[3]" 4.0 (Array1.unsafe_get b 3)
+
+let%test "strsm" =
+  let a = Array1.of_array float32 c_layout [|1.0; 2.0; 0.0; 2.0|] in
+  let b = Array1.of_array float32 c_layout [|3.0; 1.0|] in
+  let _ = strsm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper) (int_of_transpose NoTrans) (int_of_diag NonUnit)
+    2 1 0.5
+    (bigarray_start array1 a) 2 
+    (bigarray_start array1 b) 1 in
+  Alcotest.(check (float 0.0001)) "b[0]" 1.0 (Array1.unsafe_get b 0);
+  Alcotest.(check (float 0.0001)) "b[1]" 0.25 (Array1.unsafe_get b 1)
+
+let%test "dgemm" =
+  let a = Array1.of_array float64 c_layout [|1.0; 2.0; 3.0; 4.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.5; 0.5; 0.5|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 4.0; 6.0; 8.0|] in
+  let _ = dgemm (int_of_order RowMajor) (int_of_transpose NoTrans) (int_of_transpose NoTrans)
+    2 2 2 0.5
+    (bigarray_start array1 a) 2 
+    (bigarray_start array1 b) 2 
+    0.5 (bigarray_start array1 c) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 2.75 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[2]" 4.75 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 5.75 (Array1.unsafe_get c 3)
+
+let%test "dsymm" =
+  let a = Array1.of_array float64 c_layout [|1.0; 2.0; 0.0; 4.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.5; 0.5; 0.5|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 4.0; 6.0; 8.0|] in
+  let _ = dsymm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper)
+    2 2 0.5
+    (bigarray_start array1 a) 2 
+    (bigarray_start array1 b) 2 
+    0.5 (bigarray_start array1 c) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 2.75 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[2]" 4.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 5.5 (Array1.unsafe_get c 3)
+
+let%test "dsyrk" =
+  let a = Array1.of_array float64 c_layout [|1.0; 2.0; 3.0; 4.0|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 4.0; 0.0; 8.0|] in
+  let _ = dsyrk (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 0.5
+    (bigarray_start array1 a) 2 
+    0.5 (bigarray_start array1 c) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 3.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 7.5 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[3]" 16.5 (Array1.unsafe_get c 3)
+
+let%test "dsyr2k" =
+  let a = Array1.of_array float64 c_layout [|1.0; 2.0; 3.0; 4.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.5; 0.5; 0.5|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 4.0; 0.0; 8.0|] in
+  let _ = dsyr2k (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 0.5
+    (bigarray_start array1 a) 2
+    (bigarray_start array1 b) 2 
+    0.5 (bigarray_start array1 c) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 2.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 4.5 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[3]" 7.5 (Array1.unsafe_get c 3)
+
+let%test "dtrmm" =
+  let a = Array1.of_array float64 c_layout [|1.0; 2.0; 0.0; 4.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.5; 0.5; 0.5|] in
+  let _ = dtrmm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper) (int_of_transpose NoTrans) (int_of_diag NonUnit)
+    2 2 2.0
+    (bigarray_start array1 a) 2 
+    (bigarray_start array1 b) 2 in
+  Alcotest.(check (float 0.0001)) "b[0]" 3.0 (Array1.unsafe_get b 0);
+  Alcotest.(check (float 0.0001)) "b[1]" 3.0 (Array1.unsafe_get b 1);
+  Alcotest.(check (float 0.0001)) "b[2]" 4.0 (Array1.unsafe_get b 2);
+  Alcotest.(check (float 0.0001)) "b[3]" 4.0 (Array1.unsafe_get b 3)
+
+let%test "dtrsm" =
+  let a = Array1.of_array float64 c_layout [|1.0; 2.0; 0.0; 2.0|] in
+  let b = Array1.of_array float64 c_layout [|3.0; 1.0|] in
+  let _ = dtrsm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper) (int_of_transpose NoTrans) (int_of_diag NonUnit)
+    2 1 0.5
+    (bigarray_start array1 a) 2 
+    (bigarray_start array1 b) 1 in
+  Alcotest.(check (float 0.0001)) "b[0]" 1.0 (Array1.unsafe_get b 0);
+  Alcotest.(check (float 0.0001)) "b[1]" 0.25 (Array1.unsafe_get b 1)
+
+let%test "cgemm" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 0.0; 4.0; 0.0; 6.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = cgemm (int_of_order RowMajor) (int_of_transpose NoTrans) (int_of_transpose NoTrans)
+    2 2 2
+    (to_voidp (bigarray_start array1 alpha)) (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 0.0 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[2]" 2.75 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 0.0 (Array1.unsafe_get c 3);
+  Alcotest.(check (float 0.0001)) "c[4]" 4.75 (Array1.unsafe_get c 4);
+  Alcotest.(check (float 0.0001)) "c[5]" 0.0 (Array1.unsafe_get c 5);
+  Alcotest.(check (float 0.0001)) "c[6]" 5.75 (Array1.unsafe_get c 6);
+  Alcotest.(check (float 0.0001)) "c[7]" 0.0 (Array1.unsafe_get c 7)
+
+let%test "csymm" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 2.0; 0.0; 0.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 0.0; 4.0; 0.0; 6.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = csymm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 2.75 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[4]" 4.5 (Array1.unsafe_get c 4);
+  Alcotest.(check (float 0.0001)) "c[6]" 5.5 (Array1.unsafe_get c 6)
+
+let%test "csyrk" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 0.0; 4.0; 0.0; 0.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = csyrk (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 3.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 7.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[6]" 16.5 (Array1.unsafe_get c 6)
+
+let%test "csyr2k" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 0.0; 4.0; 0.0; 0.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = csyr2k (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2
+    (to_voidp (bigarray_start array1 b)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 2.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 4.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[6]" 7.5 (Array1.unsafe_get c 6)
+
+let%test "ctrmm" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 2.0; 0.0; 0.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|2.0; 0.0|] in
+  let _ = ctrmm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper) (int_of_transpose NoTrans) (int_of_diag NonUnit)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 2 in
+  Alcotest.(check (float 0.0001)) "b[0]" 3.0 (Array1.unsafe_get b 0);
+  Alcotest.(check (float 0.0001)) "b[2]" 3.0 (Array1.unsafe_get b 2);
+  Alcotest.(check (float 0.0001)) "b[4]" 4.0 (Array1.unsafe_get b 4);
+  Alcotest.(check (float 0.0001)) "b[6]" 4.0 (Array1.unsafe_get b 6)
+
+let%test "ctrsm" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 2.0; 0.0; 0.0; 0.0; 2.0; 0.0|] in
+  let b = Array1.of_array float32 c_layout [|3.0; 0.0; 1.0; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = ctrsm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper) (int_of_transpose NoTrans) (int_of_diag NonUnit)
+    2 1 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 1 in
+  Alcotest.(check (float 0.0001)) "b[0]" 1.0 (Array1.unsafe_get b 0);
+  Alcotest.(check (float 0.0001)) "b[2]" 0.25 (Array1.unsafe_get b 2)
+
+let%test "zgemm" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 0.0; 4.0; 0.0; 6.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zgemm (int_of_order RowMajor) (int_of_transpose NoTrans) (int_of_transpose NoTrans)
+    2 2 2
+    (to_voidp (bigarray_start array1 alpha)) (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 0.0 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[2]" 2.75 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 0.0 (Array1.unsafe_get c 3);
+  Alcotest.(check (float 0.0001)) "c[4]" 4.75 (Array1.unsafe_get c 4);
+  Alcotest.(check (float 0.0001)) "c[5]" 0.0 (Array1.unsafe_get c 5);
+  Alcotest.(check (float 0.0001)) "c[6]" 5.75 (Array1.unsafe_get c 6);
+  Alcotest.(check (float 0.0001)) "c[7]" 0.0 (Array1.unsafe_get c 7)
+
+let%test "zsymm" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 2.0; 0.0; 0.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 0.0; 4.0; 0.0; 6.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zsymm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 2.75 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[4]" 4.5 (Array1.unsafe_get c 4);
+  Alcotest.(check (float 0.0001)) "c[6]" 5.5 (Array1.unsafe_get c 6)
+
+let%test "zsyrk" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 0.0; 4.0; 0.0; 0.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zsyrk (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 3.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 7.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[6]" 16.5 (Array1.unsafe_get c 6)
+
+let%test "zsyr2k" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 0.0; 4.0; 0.0; 0.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zsyr2k (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2
+    (to_voidp (bigarray_start array1 b)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 2.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 4.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[6]" 7.5 (Array1.unsafe_get c 6)
+
+let%test "ztrmm" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 2.0; 0.0; 0.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|2.0; 0.0|] in
+  let _ = ztrmm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper) (int_of_transpose NoTrans) (int_of_diag NonUnit)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 2 in
+  Alcotest.(check (float 0.0001)) "b[0]" 3.0 (Array1.unsafe_get b 0);
+  Alcotest.(check (float 0.0001)) "b[2]" 3.0 (Array1.unsafe_get b 2);
+  Alcotest.(check (float 0.0001)) "b[4]" 4.0 (Array1.unsafe_get b 4);
+  Alcotest.(check (float 0.0001)) "b[6]" 4.0 (Array1.unsafe_get b 6)
+
+let%test "ztrsm" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 2.0; 0.0; 0.0; 0.0; 2.0; 0.0|] in
+  let b = Array1.of_array float64 c_layout [|3.0; 0.0; 1.0; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = ztrsm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper) (int_of_transpose NoTrans) (int_of_diag NonUnit)
+    2 1 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 1 in
+  Alcotest.(check (float 0.0001)) "b[0]" 1.0 (Array1.unsafe_get b 0);
+  Alcotest.(check (float 0.0001)) "b[2]" 0.25 (Array1.unsafe_get b 2)
+
+let%test "chemm" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 2.0; 1.0; 0.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 0.0; 4.0; 0.0; 6.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = chemm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper)
+    2 2
+    (to_voidp (bigarray_start array1 alpha)) (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 0.25 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[2]" 2.75 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 0.25 (Array1.unsafe_get c 3);
+  Alcotest.(check (float 0.0001)) "c[4]" 4.5 (Array1.unsafe_get c 4);
+  Alcotest.(check (float 0.0001)) "c[5]" (-0.25) (Array1.unsafe_get c 5);
+  Alcotest.(check (float 0.0001)) "c[6]" 5.5 (Array1.unsafe_get c 6);
+  Alcotest.(check (float 0.0001)) "c[7]" (-0.25) (Array1.unsafe_get c 7)
+
+let%test "cherk" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 0.0; 4.0; 2.0; 0.0; 0.0; 8.0; 0.0|] in
+  let _ = cherk (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 0.5
+    (to_voidp (bigarray_start array1 a)) 2 
+    0.5 (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 3.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 7.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 1.0 (Array1.unsafe_get c 3);
+  Alcotest.(check (float 0.0001)) "c[6]" 16.5 (Array1.unsafe_get c 6)
+
+let%test "cher2k" =
+  let a = Array1.of_array float32 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float32 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float32 c_layout [|2.0; 0.0; 4.0; 2.0; 0.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float32 c_layout [|0.5; 0.0|] in
+  let _ = cher2k (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2
+    (to_voidp (bigarray_start array1 b)) 2 
+    0.5 (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 2.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 4.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 1.0 (Array1.unsafe_get c 3);
+  Alcotest.(check (float 0.0001)) "c[6]" 7.5 (Array1.unsafe_get c 6)
+
+let%test "zhemm" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 2.0; 1.0; 0.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 0.0; 4.0; 0.0; 6.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let beta = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zhemm (int_of_order RowMajor) (int_of_side Left) (int_of_uplo Upper)
+    2 2
+    (to_voidp (bigarray_start array1 alpha)) (to_voidp (bigarray_start array1 a)) 2 
+    (to_voidp (bigarray_start array1 b)) 2 
+    (to_voidp (bigarray_start array1 beta)) (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 1.75 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[1]" 0.25 (Array1.unsafe_get c 1);
+  Alcotest.(check (float 0.0001)) "c[2]" 2.75 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 0.25 (Array1.unsafe_get c 3);
+  Alcotest.(check (float 0.0001)) "c[4]" 4.5 (Array1.unsafe_get c 4);
+  Alcotest.(check (float 0.0001)) "c[5]" (-0.25) (Array1.unsafe_get c 5);
+  Alcotest.(check (float 0.0001)) "c[6]" 5.5 (Array1.unsafe_get c 6);
+  Alcotest.(check (float 0.0001)) "c[7]" (-0.25) (Array1.unsafe_get c 7)
+
+let%test "zherk" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 0.0; 4.0; 2.0; 0.0; 0.0; 8.0; 0.0|] in
+  let _ = zherk (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 0.5
+    (to_voidp (bigarray_start array1 a)) 2 
+    0.5 (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 3.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 7.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 1.0 (Array1.unsafe_get c 3);
+  Alcotest.(check (float 0.0001)) "c[6]" 16.5 (Array1.unsafe_get c 6)
+
+let%test "zher2k" =
+  let a = Array1.of_array float64 c_layout [|1.0; 0.0; 2.0; 0.0; 3.0; 0.0; 4.0; 0.0|] in
+  let b = Array1.of_array float64 c_layout [|0.5; 0.0; 0.5; 0.0; 0.5; 0.0; 0.5; 0.0|] in
+  let c = Array1.of_array float64 c_layout [|2.0; 0.0; 4.0; 2.0; 0.0; 0.0; 8.0; 0.0|] in
+  let alpha = Array1.of_array float64 c_layout [|0.5; 0.0|] in
+  let _ = zher2k (int_of_order RowMajor) (int_of_uplo Upper) (int_of_transpose NoTrans)
+    2 2 (to_voidp (bigarray_start array1 alpha))
+    (to_voidp (bigarray_start array1 a)) 2
+    (to_voidp (bigarray_start array1 b)) 2 
+    0.5 (to_voidp (bigarray_start array1 c)) 2 in
+  Alcotest.(check (float 0.0001)) "c[0]" 2.5 (Array1.unsafe_get c 0);
+  Alcotest.(check (float 0.0001)) "c[2]" 4.5 (Array1.unsafe_get c 2);
+  Alcotest.(check (float 0.0001)) "c[3]" 1.0 (Array1.unsafe_get c 3);
+  Alcotest.(check (float 0.0001)) "c[6]" 7.5 (Array1.unsafe_get c 6)
