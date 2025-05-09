@@ -1,0 +1,35 @@
+opam-version: "2.0"
+version: "0.0.1"
+synopsis: "ML framework in OCaml"
+description: "Yet another machine learning framework in OCaml"
+maintainer: ["Tang Jiaxing <zzhiliao@163.com>"]
+authors: ["Tang Jiaxing <zzhiliao@163.com>"]
+license: "LGPL-2.1-only"
+tags: ["machine learning" "deep learning"]
+homepage: "https://github.com/tjxing/yarrow"
+bug-reports: "https://github.com/tjxing/yarrow/issues"
+depends: [
+  "dune" {>= "3.18"}
+  "ocaml" {>= "5.2.1"}
+  "ctypes"
+  "ctypes-foreign"
+  "alcotest" {with-test}
+  "ppx_inline_alcotest" {with-test}
+  "odoc" {with-doc}
+]
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+]
+dev-repo: "git+https://github.com/tjxing/yarrow.git"
+x-maintenance-intent: ["(latest)"]
