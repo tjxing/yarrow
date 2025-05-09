@@ -17,8 +17,13 @@
 
 (package
  (name yarrow)
- (synopsis "yarrow.ml")
+ (synopsis "ML framework in OCaml")
  (description "Yet another machine learning framework in OCaml")
- (depends ocaml)
+ (depends 
+  (ocaml (>= "5.2.1"))
+  ctypes
+  ctypes-foreign
+  (alcotest :with-test)
+  (ppx_inline_alcotest :with-test))
  (tags
   ("machine learning" "deep learning")))
