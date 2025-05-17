@@ -10,7 +10,7 @@ homepage: "https://github.com/tjxing/yarrow"
 bug-reports: "https://github.com/tjxing/yarrow/issues"
 depends: [
   "dune" {>= "3.18"}
-  "ocaml" {>= "5.2.1"}
+  "ocaml" {>= "4.05.0"}
   "ctypes"
   "ctypes-foreign"
   "alcotest" {with-test}
